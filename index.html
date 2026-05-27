@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Online Image Resizer — Resize JPG PNG WebP in Browser</title>
+<meta name="description" content="Resize JPG, PNG, and WebP images online for free. 100% browser-based, no upload. Resize by dimensions, percentage, or presets. Maintain aspect ratio, preview before download.">
+<meta property="og:title" content="Free Online Image Resizer — No Upload, 100% Private">
+<meta property="og:description" content="Resize images in your browser. No upload, no server, no tracking. Custom dimensions, presets, batch download.">
+<link rel="canonical" href="https://xueboyang1985.github.io/image-resizer/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Free Online Image Resizer","operatingSystem":"Any","browserRequirements":"Modern browser with Canvas support","applicationCategory":"Multimedia","description":"Resize JPG, PNG, WebP images in your browser. 100% local, no upload."}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1a1a1a;line-height:1.6;}
+.container{max-width:800px;margin:0 auto;padding:20px;}
+.header{text-align:center;padding:40px 0 20px;}
+.header h1{font-size:28px;margin-bottom:8px;color:#1a1a1a;}
+.header p{color:#64748b;font-size:15px;}
+.card{background:white;border-radius:12px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.upload-zone{border:2px dashed #cbd5e1;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.dragover{border-color:#6366f1;background:#f8fafc;}
+.upload-zone.has-files{border-style:solid;border-color:#6366f1;background:#f0f0ff;padding:16px 20px;}
+.upload-zone .icon{font-size:40px;margin-bottom:8px;}
+.upload-zone .text{font-size:14px;color:#64748b;}
+.upload-zone .text strong{color:#6366f1;}
+.file-list{margin:12px 0;}
+.file-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;flex-wrap:wrap;}
+.file-item .preview{width:48px;height:48px;object-fit:cover;border-radius:4px;background:#f1f5f9;}
+.file-item .info{flex:1;min-width:150px;}
+.file-item .name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-item .size-info{font-size:12px;color:#94a3b8;}
+.file-item .dims{font-size:12px;color:#94a3b8;}
+.file-item .remove{cursor:pointer;color:#ef4444;font-size:18px;padding:4px;}
+.resize-options{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;}
+.resize-options label{font-size:13px;font-weight:600;color:#475569;}
+.resize-options input[type="number"]{width:80px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;}
+.resize-options select{padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:white;}
+.resize-options .checkbox-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;color:#475569;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.15s;}
+.btn-primary{background:#6366f1;color:white;}
+.btn-primary:hover{background:#4f46e5;}
+.btn-primary:disabled{background:#a5b4fc;cursor:not-allowed;}
+.btn-success{background:#22c55e;color:white;}
+.btn-success:hover{background:#16a34a;}
+.progress-bar{height:6px;background:#e2e8f0;border-radius:3px;margin:12px 0;overflow:hidden;}
+.progress-bar .fill{height:100%;background:#6366f1;border-radius:3px;transition:width 0.3s;width:0;}
+.status-text{font-size:13px;color:#64748b;text-align:center;margin:8px 0;}
+.footer{text-align:center;padding:40px 0;color:#94a3b8;font-size:13px;}
+.free-hint{text-align:center;padding:10px;background:#fef3c7;border-radius:8px;font-size:13px;color:#92400e;margin:12px 0;}
+.free-hint a{color:#6366f1;font-weight:600;text-decoration:none;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>Free Online Image Resizer</h1>
+<p>Resize JPG, PNG, and WebP images — 100% in your browser, nothing uploaded</p>
+</div>
+
+<div class="card">
+<div class="upload-zone" id="upload-zone">
+<div class="icon">📁</div>
+<div class="text"><strong>Click to upload</strong> or drag &amp; drop images here</div>
+<div style="font-size:12px;color:#94a3b8;margin-top:6px;">Supports JPG, PNG, WebP &middot; Free: up to 5MB per file</div>
+</div>
+<input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none">
+
+<div id="file-list" class="file-list"></div>
+
+<div id="controls" style="display:none;">
+<div class="resize-options">
+<label>Width:</label>
+<input type="number" id="resize-width" placeholder="px" min="1">
+<label>Height:</label>
+<input type="number" id="resize-height" placeholder="px" min="1">
+<label>Preset:</label>
+<select id="resize-preset" onchange="applyPreset()">
+<option value="">Custom</option>
+<option value="1920x1080">1920x1080 (1080p)</option>
+<option value="1280x720">1280x720 (720p)</option>
+<option value="1080x1080">1080x1080 (Instagram)</option>
+<option value="1080x1350">1080x1350 (IG Portrait)</option>
+<option value="1200x630">1200x630 (OG Image)</option>
+<option value="800x800">800x800 (Square)</option>
+<option value="400x300">400x300 (Thumbnail)</option>
+<option value="150x150">150x150 (Avatar)</option>
+</select>
+<label class="checkbox-label">
+<input type="checkbox" id="aspect-ratio" checked> Maintain aspect ratio
+</label>
+</div>
+
+<div class="btn-group" style="justify-content:center;">
+<button class="btn btn-primary" id="btn-resize" onclick="resizeAll()">Resize All Images</button>
+<button class="btn btn-success" id="btn-download-all" onclick="downloadAll()" style="display:none;">Download All as ZIP</button>
+</div>
+<div class="status-text" id="status"></div>
+<div class="progress-bar" id="progress" style="display:none;"><div class="fill" id="progress-fill"></div></div>
+</div>
+
+<div class="free-hint" id="free-hint">Free: 5MB per file &middot; <a onclick="showProModal()">Get PRO</a> for unlimited file size, batch processing &amp; max quality</div>
+</div>
+
+<div class="card" style="font-size:14px;color:#475569;">
+<p><strong>How it works:</strong> Your images are resized using the browser Canvas API. Everything stays on your device — no upload, no server, no tracking. Choose exact dimensions, a preset size, or scale by percentage. Maintain aspect ratio with one click.</p>
+</div>
+
+<div class="card" style="font-size:13px;">
+<p><strong>🛠️ More free tools:</strong></p>
+<p>
+<a href="https://xueboyang1985.github.io/image-compressor/">Image Compressor</a> &middot;
+<a href="https://xueboyang1985.github.io/pdf-tools/">PDF Tools</a> &middot;
+<a href="https://xueboyang1985.github.io/background-remover/">Background Remover</a> &middot;
+<a href="https://xueboyang1985.github.io/qr-code-generator/">QR Code Generator</a> &middot;
+<a href="https://xueboyang1985.github.io/password-generator/">Password Generator</a> &middot;
+<a href="https://xueboyang1985.github.io/free-browser-tools/">All Tools</a>
+</p>
+</div>
+
+<div class="footer">
+<p>100% local &bull; No upload &bull; No server &bull; Your images never leave your device</p>
+</div>
+</div>
+
+<div class="modal-overlay" id="pro-modal" style="display:none;" onclick="if(event.target===this)closeProModal()">
+<div class="modal">
+<h2>🚀 Image Resizer PRO</h2>
+<p style="margin:12px 0;font-size:14px;color:#475569;">Unlock unlimited image resizing:</p>
+<ul style="font-size:14px;color:#475569;margin-bottom:16px;padding-left:20px;">
+<li>No file size limits</li>
+<li>Batch resize unlimited images</li>
+<li>Maximum quality output</li>
+<li>Ad-free experience</li>
+<li>Works across all 12+ browser tools</li>
+</ul>
+<p style="font-weight:600;font-size:18px;margin-bottom:16px;">PRO Bundle — $19.99 <span style="font-size:13px;color:#94a3b8;font-weight:400;">one-time, 3 devices</span></p>
+<button class="btn btn-primary" onclick="buyBundle()" style="width:100%;">Get PRO Bundle $19.99</button>
+<p style="margin-top:12px;font-size:12px;color:#94a3b8;">Already purchased? <a onclick="showLicenseModal()" style="color:#6366f1;cursor:pointer;text-decoration:underline;">Enter license key</a></p>
+<p style="margin-top:8px;font-size:12px;color:#94a3b8;">Bundle includes this tool + 12+ other tools</p>
+</div>
+</div>
+
+<div class="modal-overlay" id="license-modal" style="display:none;" onclick="if(event.target===this)closeLicenseModal()">
+<div class="modal">
+<h2>Enter PRO License Key</h2>
+<input type="text" id="pro-key" placeholder="Paste your license key here" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;margin:12px 0;">
+<button class="btn btn-primary" onclick="actPRO()" style="width:100%;">Activate PRO</button>
+<p id="pro-status" style="margin-top:8px;font-size:13px;color:#64748b;"></p>
+</div>
+</div>
+
+<style>
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.modal{background:white;border-radius:12px;padding:24px;width:90%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
+.modal h2{font-size:18px;}
+</style>
+
+<script>
+let pro = 0;
+try { pro = parseInt(localStorage.getItem('ir_pro')) || 0; } catch(e) {}
+const FREE_LIMIT_MB = 5;
+const BUNDLE_ID = 'xdlh1FHKAU0E7q3ZRuHPaw==';
+const files = [];
+let resizedCount = 0;
+
+const dz = document.getElementById('upload-zone');
+const fi = document.getElementById('file-input');
+dz.onclick = () => fi.click();
+fi.onchange = () => { for (const f of fi.files) addFile(f); fi.value = ''; };
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('dragover'); };
+dz.ondragleave = () => dz.classList.remove('dragover');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('dragover'); for (const f of e.dataTransfer.files) addFile(f); };
+
+function addFile(file) {
+  const typeOk = ['image/jpeg','image/png','image/webp'].includes(file.type);
+  if (!typeOk) { alert('Only JPG, PNG, WebP allowed.'); return; }
+  const mbOk = file.size <= FREE_LIMIT_MB * 1024 * 1024 || pro;
+  if (!mbOk) { alert('Free limit: ' + FREE_LIMIT_MB + 'MB per file. Get PRO for unlimited.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      files.push({ file, dataUrl: e.target.result, img, quality: 85, resized: null, resizedSize: 0, newWidth: img.width, newHeight: img.height, origWidth: img.width, origHeight: img.height });
+      renderFiles();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderFiles() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = files.map((f, i) => {
+    const origSize = f.file.size;
+    const newSize = f.resizedSize;
+    return '<div class="file-item">' +
+      '<img class="preview" src="' + (f.resized ? f.resizedUrl : f.dataUrl) + '">' +
+      '<div class="info"><div class="name">' + f.file.name + '</div>' +
+      '<div class="size-info">Original: ' + f.origWidth + 'x' + f.origHeight + ' (' + fmtSize(origSize) + ')' +
+      (f.resized ? ' &rarr; Resized: ' + f.newWidth + 'x' + f.newHeight + ' (' + fmtSize(newSize) + ')' : '') +
+      '</div></div>' +
+      '<button class="btn btn-success" onclick="downloadOne(' + i + ')" ' + (!f.resized ? 'disabled' : '') + ' style="padding:4px 12px;font-size:12px;">Download</button>' +
+      '<span class="remove" onclick="removeFile(' + i + ')">&times;</span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('controls').style.display = files.length ? 'block' : 'none';
+  dz.classList.toggle('has-files', files.length > 0);
+  document.getElementById('btn-download-all').style.display = files.some(f => f.resized) ? 'inline-block' : 'none';
+}
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderFiles();
+}
+
+function applyPreset() {
+  const val = document.getElementById('resize-preset').value;
+  if (!val) return;
+  const [w, h] = val.split('x').map(Number);
+  document.getElementById('resize-width').value = w;
+  document.getElementById('resize-height').value = h;
+}
+
+function getTargetDims(imgW, imgH) {
+  let w = parseInt(document.getElementById('resize-width').value);
+  let h = parseInt(document.getElementById('resize-height').value);
+  const keepAspect = document.getElementById('aspect-ratio').checked;
+
+  if (!w && !h) return { w: imgW, h: imgH };
+  if (w && !h) return { w, h: Math.round(imgH * w / imgW) };
+  if (!w && h) return { w: Math.round(imgW * h / imgH), h };
+  if (keepAspect) {
+    const ratio = Math.min(w / imgW, h / imgH);
+    return { w: Math.round(imgW * ratio), h: Math.round(imgH * ratio) };
+  }
+  return { w, h };
+}
+
+async function resizeAll() {
+  const status = document.getElementById('status');
+  const progress = document.getElementById('progress');
+  const fill = document.getElementById('progress-fill');
+  progress.style.display = 'block';
+  resizedCount = 0;
+  for (let i = 0; i < files.length; i++) {
+    status.textContent = 'Resizing ' + (i + 1) + '/' + files.length + '...';
+    await resizeFile(i);
+    resizedCount++;
+    fill.style.width = ((i + 1) / files.length * 100) + '%';
+  }
+  status.textContent = 'All images resized!';
+  renderFiles();
+}
+
+async function resizeFile(i) {
+  const f = files[i];
+  return new Promise(resolve => {
+    const { w, h } = getTargetDims(f.img.width, f.img.height);
+    f.newWidth = w;
+    f.newHeight = h;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(f.img, 0, 0, w, h);
+    const mime = f.file.type;
+    canvas.toBlob(blob => {
+      f.resized = blob;
+      f.resizedSize = blob.size;
+      f.resizedUrl = URL.createObjectURL(blob);
+      resolve();
+    }, mime, f.quality / 100);
+  });
+}
+
+function downloadOne(i) {
+  const f = files[i];
+  if (!f.resized) return;
+  const a = document.createElement('a');
+  a.href = f.resizedUrl;
+  a.download = f.file.name.replace(/(\.[^.]+)$/, '_resized$1');
+  a.click();
+}
+
+function downloadAll() {
+  if (typeof JSZip === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = () => doDownloadAll();
+    document.head.appendChild(s);
+  } else {
+    doDownloadAll();
+  }
+}
+
+function doDownloadAll() {
+  const zip = new JSZip();
+  for (const f of files) {
+    if (f.resized) {
+      zip.file(f.file.name.replace(/(\.[^.]+)$/, '_resized$1'), f.resized);
+    }
+  }
+  zip.generateAsync({ type: 'blob' }).then(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'resized_images.zip';
+    a.click();
+  });
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// PRO
+function showProModal() { document.getElementById('pro-modal').style.display = 'flex'; }
+function closeProModal() { document.getElementById('pro-modal').style.display = 'none'; }
+function showLicenseModal() { closeProModal(); document.getElementById('license-modal').style.display = 'flex'; }
+function closeLicenseModal() { document.getElementById('license-modal').style.display = 'none'; }
+function buyBundle() {
+  window.open('https://xuebo8.gumroad.com/l/skxcpj', 'gumroad', 'width=600,height=700');
+}
+
+async function tryBundleKey(k) {
+  try {
+    const r = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({product_id: BUNDLE_ID, license_key: k})
+    });
+    const d = await r.json();
+    return d.success && d.purchase;
+  } catch { return false; }
+}
+
+async function actPRO() {
+  const k = document.getElementById('pro-key').value.trim();
+  if (!k || k.length < 10) { document.getElementById('pro-status').textContent = 'Enter your license key.'; return; }
+  document.getElementById('pro-status').textContent = 'Verifying...';
+  if (await tryBundleKey(k)) {
+    pro = 1;
+    try { localStorage.setItem('ir_pro', '1'); } catch(e) {}
+    closeLicenseModal();
+    document.getElementById('free-hint').innerHTML = 'PRO activated &mdash; unlimited file size, batch processing.';
+    location.reload();
+  } else {
+    document.getElementById('pro-status').textContent = 'Invalid license key. Check your Gumroad receipt.';
+  }
+}
+
+window.addEventListener('message', e => {
+  if (e.data && e.data.success && e.data.purchase) {
+    const input = document.getElementById('pro-key');
+    if (input) { input.value = e.data.license_key || ''; showLicenseModal(); }
+  }
+});
+
+if (pro) {
+  document.getElementById('free-hint').innerHTML = 'PRO activated &mdash; unlimited file size, batch processing.';
+}
+</script>
+</body>
+</html>
